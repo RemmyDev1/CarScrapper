@@ -19,7 +19,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 
 
 
-"copywritten by kariem hassan can be used for personal learning only code cannot be redistributed nor posted online without permission"
+"copywritten by Kariem Hassan can be used for personal learning only code cannot be redistributed nor posted online without permission"
 "can only share the code cannot claim code is yours thanks!"
 
 
