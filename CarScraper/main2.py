@@ -10,16 +10,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service as ChromeService
 import OutputData as od
 from webdriver_manager.chrome import ChromeDriverManager
-import undetected_chromedriver2 as uc
 from ui import get_user_input
-import os
-from selenium_stealth import stealth
-from selenium.webdriver.common.action_chains import ActionChains
 
 
 
-
-"copywritten by Kariem Hassan can be used for personal learning only code cannot be redistributed nor posted online without permission"
+"copywritten by kariem hassan can be used for personal learning only code cannot be redistributed nor posted online without permission"
 "can only share the code cannot claim code is yours thanks!"
 
 
@@ -32,57 +27,35 @@ cargurus = False
 
 
 
+
+
+
 def setup_google():
+    scraper = cloudscraper.create_scraper()
+
+    # Create ChromeOptions object for custom Chrome setup
     chrome_options = webdriver.ChromeOptions()
 
-    # Use Chrome user data to use an existing profile
-    chrome_options.add_argument(f"--user-data-dir={os.path.expanduser('~')}/AppData/Local/Google/Chrome/User Data")
+    # Optional: Get a random user-agent (if desired)
+    def get_random_user_agent():
+        ua = UserAgent()
+        return ua.random
 
-    # Detect and use any available profile
-    user_data_dir = os.path.expanduser('~') + r'\AppData\Local\Google\Chrome\User Data'
-    available_profiles = [f for f in os.listdir(user_data_dir) if f.startswith("Profile ")]
+    # Add random user-agent to Chrome options
+    chrome_options.add_argument(f"user-agent={get_random_user_agent()}")
 
-    if available_profiles:
-        chrome_options.add_argument(f"--profile-directory={available_profiles[0]}")
-    else:
-        chrome_options.add_argument("--profile-directory=Default")
 
-    # Other browser settings to bypass detection
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    chrome_options.add_experimental_option("useAutomationExtension", False)
-    chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.add_argument("--start-maximized")
-    chrome_options.add_argument("user-agent=YOUR_USER_AGENT_STRING")
-
+    # Use WebDriverManager to automatically get the appropriate ChromeDriver
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
 
-    # Apply Selenium Stealth to avoid bot detection
-    stealth(driver,
-            languages=["en-US", "en"],
-            vendor="Google Inc.",
-            platform="Win32",
-            webgl_vendor="Intel Inc.",
-            renderer="Intel Iris OpenGL Engine",
-            fix_hairline=True,
-            )
 
     return driver
-
-
-def refresh_page(driver, refresh_count, pause_time):
-    """Refresh the page multiple times before starting to scrape."""
-    for i in range(refresh_count):
-        print(f"Refreshing page... {i+1}/{refresh_count}")
-        driver.refresh()
-        time.sleep(pause_time)
-
 def incremental_scroll(driver, pause_time=3):
     """Scroll incrementally until the end of the page is reached."""
     last_height = driver.execute_script("return document.body.scrollHeight")
 
     while True:
-        # Scroll to the bottom of window the page
+        # Scroll to the bottom of the page
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
         # Wait for new content to load
@@ -100,27 +73,26 @@ def incremental_scroll(driver, pause_time=3):
     return None
 
 def FindCarsFromAutotrader(criteria, cars):
+    first_record = 0
     data = []
     driver = setup_google()
     for car in cars:
         url = (
-            f"https://www.autotrader.com//cars-for-sale/all/{car['make']}/{car['model']}/"
+            f"https://www.autotrader.com//cars-for-sale/all/cars-between-{criteria['price_from']}-and-{criteria['price_to']}/{car['make']}/{car['model']}/"
             f"?zip={criteria['postcode']}&startYear={criteria['year_from']}&endYear={criteria['year_to']}"
-            f"&priceRange={criteria['price_from']}-{criteria['price_to']}&maxMileage={criteria['mileage']}&searchRadius={criteria['radius']}&vehicleHistoryType=ONE_OWNER&vehicleHistoryType=CLEAN_TITLE&vehicleHistoryType=NO_ACCIDENTS"
+            f"&maxMileage={criteria['mileage']}&searchRadius={criteria['radius']}"
         )
 
         print(f"Scraping {car['make']} {car['model']} from URL: {url}")
 
         driver.get(url)
         driver.maximize_window()
-        refresh_page(driver, refresh_count=20, pause_time=0)
+
         while True:
             page_source = driver.page_source
             content = BeautifulSoup(page_source, "html.parser")
 
             incremental_scroll(driver)
-
-
 
             # Find both normal and boosted articles
             normal_articles = content.findAll("div", attrs={"data-cmp": "inventoryListing"})
@@ -133,46 +105,20 @@ def FindCarsFromAutotrader(criteria, cars):
 
             for article in all_articles:
                 try:
+                    # Check if the listing contains a promotional 'Dealer Logo' image
                     dealer_logo = article.find("img", alt="Dealer Logo")
                     if dealer_logo:
                         print("Skipping promotional listing with Dealer Logo.")
                         continue
 
-                    # Check if it's a promotional carousel listing
-                    carousel = article.find("div", class_="inventory-carousel")
-                    if carousel:
-                        print("Skipping promotional carousel listing.")
-                        continue
-
-                    # Handle listings without name or mileage information
-                    name = article.find("h3", class_="text-bold text-size-400 link-unstyled")
-                    if not name:
-                        print("Skipping listing without a name.")
-                        continue
-
-                    mileage = article.find("div", class_="text-bold text-subdued-lighter margin-top-3")
-                    if not mileage:
-                        print("Skipping listing without mileage information.")
-                        continue
-
-                    distance = article.find("span", class_="text-normal")
-                    if not distance:
-                        distance = '0'
-                    price = article.find("div", class_="text-size-600 text-ultra-bold first-price")
-                    if not price:
-                        price = '0'
-
-                    name_tag = article.find("h3", class_="text-bold text-size-400 link-unstyled")
+                    name_tag = article.find("h2", class_="text-bold text-size-400 link-unstyled")
                     name = name_tag.text.strip() if name_tag else "No name available"
-                    if price != '0':
-                        price_tag = article.find("div", class_="text-size-600 text-ultra-bold first-price")
-                        price = price_tag.text.strip() if price_tag else "Price not available"
+                    price_tag = article.find("div", class_="text-size-500 text-ultra-bold first-price")
+                    price = price_tag.text.strip() if price_tag else "Price not available"
                     mileage_tag = article.find("div", class_="text-bold text-subdued-lighter margin-top-3")
                     mileage = mileage_tag.text.strip() if mileage_tag else "Mileage not available"
-
-                    if distance != '0':
-                        distance_tag = article.find("span", class_="text-normal")
-                        distance = distance_tag.text.strip() if distance_tag else "Distance not available"
+                    distance_tag = article.find("span", class_="text-normal")
+                    distance = distance_tag.text.strip() if distance_tag else "Distance not available"
                     link_tag = article.find("a", href=True)
                     link = link_tag["href"] if link_tag else "No link available"
 
@@ -185,28 +131,24 @@ def FindCarsFromAutotrader(criteria, cars):
                 except Exception as e:
                     print(f"Error processing article: {e}")
                     continue
-            time.sleep(10)
-            try:
-                next_button = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[aria-label="Next Page"]')))
-                if next_button.get_attribute('disabled'):
-                    print("No more pages.")
-                    break
-                else:
-                    print("Moving to the next page...")
-                    try:
-                        driver.execute_script("arguments[0].click();", next_button)
-                    except Exception as e:
-                        print(f"JavaScript click failed, trying standard click: {e}")
-                        next_button.click()
 
-                    time.sleep(random.uniform(5, 10))  # Random delay between page loads
+            try:
+                first_record += 25
+                url = (
+             f"https://www.autotrader.com/cars-for-sale/all/cars-between-{criteria['price_from']}-and-{criteria['price_to']}/"
+            f"{car['make']}/{car['model']}/"
+            f"?zip={criteria['postcode']}&startYear={criteria['year_from']}&endYear={criteria['year_to']}"
+            f"&maxMileage={criteria['mileage']}&searchRadius={criteria['radius']}&firstRecord={first_record}"
+            )
+                driver.get(url)
 
             except Exception as e:
                 print(f"Error finding or clicking next page button: {e}")
                 break
     driver.quit()
-
+    if not data:
+        print("No data retrieved. The website may be down or there are no results.")
+        return []
     return data
 
 def FindCarsFromCars(criteria, cars):

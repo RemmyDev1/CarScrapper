@@ -16,12 +16,13 @@ def clean_and_process_data(df, criteria, site_name):
     except ValueError as e:
         print(f"Error converting price: {e}")
 
-    # Afte  r cleaning, fill NaN and convert to integers
+    # After cleaning, fill NaN and convert to integers
+    df["price"] = pd.to_numeric(df["price"], errors="coerce")
     df["price"] = df["price"].fillna(0).astype(int)
     print("Cleaned prices:", df["price"].head())  # Debugging output
 
     # Clean and convert mileage
-    df["mileage"] = df["mileage"].str.strip().str.replace(",", "", regex=False).str.replace(" mi.", "", regex=False).str.replace(" miles", "", regex=False)
+    df["mileage"] = df["mileage"].str.strip().str.replace(",", "", regex=False).str.replace(" miles", "", regex=False)
     print("Raw mileage before conversion:", df["mileage"].unique())  # Debugging output
 
     # Try converting mileage and handle errors
@@ -29,14 +30,10 @@ def clean_and_process_data(df, criteria, site_name):
         df["mileage"] = pd.to_numeric(df["mileage"], errors="raise")
     except ValueError as e:
         print(f"Error converting mileage: {e}")
-    try:
-        if df["mileage"] == 'Mileage not available':
-            df["mileage"] = '0'
-    except ValueError as e:
-        print(f"milage is correct")
 
-    df["mileage"] = df["mileage"].fillna(0).astype(int)
-    print("Cleaned mileage:", df["mileage"].head())  # Debugging output
+    df["mileage"] = df["mileage"].astype(str).str.replace(" mi.", "", regex=False)  # Remove " mi."
+    df["mileage"] = pd.to_numeric(df["mileage"], errors="coerce")  # Convert to numeric, handling errors
+    df["mileage"] = df["mileage"].fillna(0).astype(int)  # Convert to integer
 
     # Clean and convert distance
     df["distance"] = df["distance"].str.strip().str.replace(" mi. away", "", regex=False).str.replace(",", "", regex=False)
@@ -48,8 +45,12 @@ def clean_and_process_data(df, criteria, site_name):
     except ValueError as e:
         print(f"Error converting distance: {e}")
 
-    df["distance"] = df["distance"].fillna(0).astype(int)
-    print("Cleaned distances:", df["distance"].head())  # Debugging output
+    # Convert distance column to numeric, forcing errors to NaN
+    df["distance"] = pd.to_numeric(df["distance"], errors="coerce")  # Converts non-numeric to NaN
+
+    # Fill NaN values with 0 and convert to integer safely
+    df["distance"] = df["distance"].fillna(0).astype(float).astype(int)  # Convert to float first, then int
+
 
     # Add current year and calculate miles per annum
     now = datetime.datetime.now()
@@ -63,8 +64,8 @@ def clean_and_process_data(df, criteria, site_name):
     df = df[df["price"] < int(criteria["price_to"])]
 
     # Add the website link prefix for consistency
-    if site_name == "Carvana":
-        df["link"] = "https://www.carvana.com" + df["link"]
+    if site_name == "autotrader":
+        df["link"] = "https://www.autotrader.com" + df["link"]
     elif site_name == "cars":
         df["link"] = "https://www.cars.com" + df["link"]
 
@@ -104,6 +105,9 @@ def output_data_to_excel(data, criteria, site_name):
     """Output cleaned data to Excel."""
     df = pd.DataFrame(data)
     print(df)
+    if df.empty:
+        print(f"No data to save for {site_name}. Skipping file creation.")
+        return
     # Clean and process data
     df = clean_and_process_data(df, criteria, site_name)
 
