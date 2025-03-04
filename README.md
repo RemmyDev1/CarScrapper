@@ -10,5 +10,5 @@ You are granted a non-exclusive, non-transferable license to use, modify, and di
 
     3.Attribution: You must credit the original creator (or copyright holder) of the product in any distribution or public use.
 
-    4.Modification: You may modify the product for educational purposes only, but any redistribution of modified versions must adhere to this license.
+    4.Modification: You may modify the product for educational purposes only, but 'NO' redistribution of the modified versions.
 By using this product, you agree to comply with the terms of this license.
