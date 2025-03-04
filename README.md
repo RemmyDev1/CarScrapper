@@ -2,7 +2,7 @@ Educational Use Only License
 
 Copyright © [2025] [RemmyDev]. All rights reserved.
 
-You are granted a non-exclusive, non-transferable license to use, modify, and distribute the product solely for personal, educational, or non-commercial purposes. The following conditions apply:
+You are granted a non-exclusive, non-transferable license to use, modify, and distribute the product solely for educational purposes. The following conditions apply:
 
     1.Permitted Uses: You may use the product for the purpose of learning, research, or academic activities only. This includes usage in classrooms, student projects, or individual self-study.
 
