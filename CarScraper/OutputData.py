@@ -4,55 +4,49 @@ import xlsxwriter
 
 
 def clean_and_process_data(df, criteria, site_name):
-    """Clean and process the data to prepare it for Excel output."""
 
-    # Clean and convert price
     df["price"] = df["price"].str.strip().str.replace("$", "", regex=False).str.replace(",", "", regex=False)
     print("Raw prices before conversion:", df["price"].unique())  # Debugging output
 
-    # Try converting prices and handle errors
     try:
-        df["price"] = pd.to_numeric(df["price"], errors="raise")  # Raise an error for problematic values
+        df["price"] = pd.to_numeric(df["price"], errors="raise")
     except ValueError as e:
         print(f"Error converting price: {e}")
 
-    # After cleaning, fill NaN and convert to integers
     df["price"] = pd.to_numeric(df["price"], errors="coerce")
     df["price"] = df["price"].fillna(0).astype(int)
-    print("Cleaned prices:", df["price"].head())  # Debugging output
+    print("Cleaned prices:", df["price"].head())
 
-    # Clean and convert mileage
     df["mileage"] = df["mileage"].str.strip().str.replace(",", "", regex=False).str.replace(" miles", "", regex=False)
-    print("Raw mileage before conversion:", df["mileage"].unique())  # Debugging output
+    print("Raw mileage before conversion:", df["mileage"].unique())
 
-    # Try converting mileage and handle errors
+
     try:
         df["mileage"] = pd.to_numeric(df["mileage"], errors="raise")
     except ValueError as e:
         print(f"Error converting mileage: {e}")
 
-    df["mileage"] = df["mileage"].astype(str).str.replace(" mi.", "", regex=False)  # Remove " mi."
-    df["mileage"] = pd.to_numeric(df["mileage"], errors="coerce")  # Convert to numeric, handling errors
-    df["mileage"] = df["mileage"].fillna(0).astype(int)  # Convert to integer
+    df["mileage"] = df["mileage"].astype(str).str.replace(" mi.", "", regex=False)
+    df["mileage"] = pd.to_numeric(df["mileage"], errors="coerce")
+    df["mileage"] = df["mileage"].fillna(0).astype(int)
 
-    # Clean and convert distance
+
     df["distance"] = df["distance"].str.strip().str.replace(" mi. away", "", regex=False).str.replace(",", "", regex=False)
-    print("Raw distances before conversion:", df["distance"].unique())  # Debugging output
+    print("Raw distances before conversion:", df["distance"].unique())
 
-    # Try converting distances and handle errors
+
     try:
         df["distance"] = pd.to_numeric(df["distance"], errors="raise")
     except ValueError as e:
         print(f"Error converting distance: {e}")
 
-    # Convert distance column to numeric, forcing errors to NaN
-    df["distance"] = pd.to_numeric(df["distance"], errors="coerce")  # Converts non-numeric to NaN
 
-    # Fill NaN values with 0 and convert to integer safely
-    df["distance"] = df["distance"].fillna(0).astype(float).astype(int)  # Convert to float first, then int
+    df["distance"] = pd.to_numeric(df["distance"], errors="coerce")
+
+    df["distance"] = df["distance"].fillna(0).astype(float).astype(int)
 
 
-    # Add current year and calculate miles per annum
+
     now = datetime.datetime.now()
     df["year"] = now.year
     df["miles_pa"] = df.apply(
@@ -60,10 +54,9 @@ def clean_and_process_data(df, criteria, site_name):
     )
     df["miles_pa"] = df["miles_pa"].replace([float('inf'), -float('inf')], 0).fillna(0).astype(int)
 
-    # Filter based on price criteria
+
     df = df[df["price"] < int(criteria["price_to"])]
 
-    # Add the website link prefix for consistency
     if site_name == "autotrader":
         df["link"] = "https://www.autotrader.com" + df["link"]
     elif site_name == "cars":
@@ -73,8 +66,7 @@ def clean_and_process_data(df, criteria, site_name):
 
 
 def apply_conditional_formatting(worksheet):
-    """Apply conditional formatting to the worksheet."""
-    # Apply conditional formatting for price, mileage, distance, and miles per annum
+
     worksheet.conditional_format("C2:C1000", {
         'type': '3_color_scale',
         'min_color': '#63be7b',
@@ -102,30 +94,25 @@ def apply_conditional_formatting(worksheet):
 
 
 def output_data_to_excel(data, criteria, site_name):
-    """Output cleaned data to Excel."""
     df = pd.DataFrame(data)
     print(df)
     if df.empty:
         print(f"No data to save for {site_name}. Skipping file creation.")
         return
-    # Clean and process data
+
     df = clean_and_process_data(df, criteria, site_name)
 
-    # Select columns to write to Excel
     df = df[["name", "link", "price", "mileage", "distance", "miles_pa"]]
 
-    # Define output file name based on site name
     output_file = f"{site_name}.xlsx"
 
     try:
         with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
             df.to_excel(writer, sheet_name=site_name, index=False)
 
-            # Access the workbook and worksheet
             workbook = writer.book
             worksheet = writer.sheets[site_name]
 
-            # Apply conditional formatting
             apply_conditional_formatting(worksheet)
 
             print(f"Output saved to current directory as '{output_file}'.")
