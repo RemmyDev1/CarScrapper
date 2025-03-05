@@ -1,4 +1,5 @@
 import time
+import math
 import random
 from fake_useragent import UserAgent
 from bs4 import BeautifulSoup
@@ -66,12 +67,14 @@ def FindCarsFromAutotrader(criteria, cars):
     data = []
     zcdb = ZipCodeDatabase()
     zipcode = zcdb[criteria['postcode']]
-    city = zipcode.city
+    city = zipcode.city.lower()
+    current_page = 1
+    state = zipcode.state.lower()
     driver = setup_google()
     for car in cars:
         url = (
             f"https://www.autotrader.com//cars-for-sale/all/cars-between-{criteria['price_from']}-and-{criteria['price_to']}/{car['make']}/{car['model']}/"
-            f"?{city}&startYear={criteria['year_from']}&maxMileage={criteria['mileage']}&searchRadius={criteria['radius']}&endYear={criteria['year_to']}"
+            f"/{city+"-"+state}?startYear={criteria['year_from']}&maxMileage={criteria['mileage']}&searchRadius={criteria['radius']}&endYear={criteria['year_to']}"
             f""
         )
 
@@ -89,7 +92,11 @@ def FindCarsFromAutotrader(criteria, cars):
             normal_articles = content.findAll("div", attrs={"data-cmp": "inventoryListing"})
             boost_articles = content.findAll("div", attrs={"data-cmp": "boostInventoryListing"})
             spotlight_articles = content.findAll("div", attrs={"data-cmp": "inventorySpotlightListing"})
-
+            cars_found_tag = content.find("h2", class_="text-bold text-size-400 text-size-sm-500 padding-bottom-4")
+            cars_found = cars_found_tag.text.strip()
+            cars_found = cars_found.strip().replace(" Results", "")
+            page_amount = int(cars_found)/25
+            page_amount = math.ceil(page_amount)
             all_articles = normal_articles + boost_articles + spotlight_articles
 
             print(f"Found {len(all_articles)} car listings on this page.")
@@ -114,6 +121,7 @@ def FindCarsFromAutotrader(criteria, cars):
                     link_tag = article.find("a", href=True)
                     link = link_tag["href"] if link_tag else "No link available"
 
+
                     details = {"name": name, "price": price, "mileage": mileage, "distance": distance, "link": link}
                     data.append(details)
 
@@ -126,13 +134,17 @@ def FindCarsFromAutotrader(criteria, cars):
 
             try:
                 first_record += 25
+                current_page += 1
                 url = (
              f"https://www.autotrader.com/cars-for-sale/all/cars-between-{criteria['price_from']}-and-{criteria['price_to']}/"
-            f"{car['make']}/{car['model']}/"
-            f"?{city}&startYear={criteria['year_from']}&maxMileage={criteria['mileage']}&firstRecord={first_record}&searchRadius={criteria['radius']}&endYear={criteria['year_to']}"
+            f"{car['make']}/{car['model']}"
+            f"/{city+"-"+state}?startYear={criteria['year_from']}&firstRecord={first_record}&maxMileage={criteria['mileage']}&searchRadius={criteria['radius']}&endYear={criteria['year_to']}"
             f""
             )
                 driver.get(url)
+                if page_amount <= current_page:
+                    break
+
 
 
             except Exception as e:
