@@ -4,8 +4,8 @@ How Does It Work?
         CarScraper operates by launching a Google Chrome browser session and sequentially navigating through car listing websites. It searches for available cars and extracts essential details, 
 
 including:
+
         Price
-        
         Mileage
         Model and Year
         Direct Listing Link
