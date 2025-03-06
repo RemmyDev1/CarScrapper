@@ -2,7 +2,8 @@ CarScraper is a web scraping tool designed to extract car listings from AutoTrad
 
 How Does It Work?
 
-        CarScraper operates by launching a Google Chrome browser session and sequentially navigating through car listing websites. It searches for available cars and extracts essential details, 
+CarScraper operates by launching a Google Chrome browser session and sequentially navigating through car listing websites. 
+It searches for available cars and extracts essential details.
 
 including:
 
