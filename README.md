@@ -1,6 +1,7 @@
 CarScraper is a web scraping tool designed to extract car listings from AutoTrader and, in the future, Cars.com, CarGurus, and other similar websites.
 
 How Does It Work?
+
         CarScraper operates by launching a Google Chrome browser session and sequentially navigating through car listing websites. It searches for available cars and extracts essential details, 
 
 including:
@@ -11,6 +12,7 @@ including:
         Direct Listing Link
 
 Requirements:
+
     CarScraper requires Python 3.12 or higher to function properly.
 
 
