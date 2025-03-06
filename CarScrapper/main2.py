@@ -82,6 +82,7 @@ def FindCarsFromAutotrader(criteria, cars):
 
         driver.get(url)
         driver.maximize_window()
+        flag = True
 
         while True:
             page_source = driver.page_source
@@ -90,25 +91,26 @@ def FindCarsFromAutotrader(criteria, cars):
             incremental_scroll(driver)
 
             normal_articles = content.findAll("div", attrs={"data-cmp": "inventoryListing"})
-            boost_articles = content.findAll("div", attrs={"data-cmp": "boostInventoryListing"})
-            spotlight_articles = content.findAll("div", attrs={"data-cmp": "inventorySpotlightListing"})
             cars_found_tag = content.find("h2", class_="text-bold text-size-400 text-size-sm-500 padding-bottom-4")
-            cars_found = cars_found_tag.text.strip()
+            if flag == True:
+                try:
+                    cars_found = cars_found_tag.text.strip()
+                    flag = False
+
+                except Exception as e:
+                    print("Site Has Might Have Crashed")
             cars_found = cars_found.strip().replace(" Results", "")
             page_amount = int(cars_found)/25
             page_amount = math.ceil(page_amount)
-            all_articles = normal_articles + boost_articles + spotlight_articles
+            all_articles = normal_articles
 
             print(f"Found {len(all_articles)} car listings on this page.")
             if len(all_articles) == 0:
+                print("Site Has Might Have Crashed")
                 break
 
             for article in all_articles:
                 try:
-                    dealer_logo = article.find("img", alt="Dealer Logo")
-                    if dealer_logo:
-                        print("Skipping promotional listing with Dealer Logo.")
-                        continue
 
                     name_tag = article.find("h2", class_="text-bold text-size-400 link-unstyled")
                     name = name_tag.text.strip() if name_tag else "No name available"
